@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CDR — Controle de Produtos</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;overflow-x:hidden}
+:root{--bg:#0e0f13;--surface:#16181f;--card:#1c1f2a;--border:#2a2d3a;--accent:#a57033;--green:#22d3a5;--yellow:#f59e0b;--red:#f43f5e;--text:#e8eaf0;--muted:#7c7f8e;--tag-bg:#252836}
+body{background:var(--bg);color:var(--text);font:14px 'Inter',sans-serif;min-height:100vh}
+button{font-family:inherit}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:12px;height:60px;position:sticky;top:0;z-index:100}
+.menu-toggle{width:38px;height:38px;border:none;border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;font-size:18px}
+.menu-toggle:hover{background:var(--accent)}
+.logo{font:700 18px 'Space Grotesk',sans-serif;white-space:nowrap}.logo span{color:var(--accent)}
+.sep{flex:1}.hact{display:flex;gap:8px}
+.pill{display:flex;align-items:center;gap:7px;background:var(--tag-bg);border:1px solid var(--border);border-radius:20px;padding:5px 13px;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.pill:hover{border-color:var(--accent);color:var(--text)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.ok{background:var(--green)}.dot.err{background:var(--red)}.dot.busy{background:var(--yellow)}
+.app{display:flex;height:calc(100vh - 60px);overflow:hidden}
+aside{width:220px;min-width:220px;background:var(--surface);border-right:1px solid var(--border);padding:20px 12px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;transition:.25s}
+aside.closed{width:0;min-width:0;padding:20px 0;overflow:hidden;border:none}
+@media(max-width:900px){aside{position:fixed;top:60px;left:0;height:calc(100vh - 60px);width:260px;min-width:260px;z-index:500;transform:translateX(-100%)}aside.open{transform:none}}
+.side-label{font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);padding:0 8px;margin:10px 0 4px}
+.side-btn{background:none;border:none;color:var(--muted);font-size:13px;padding:8px 10px;border-radius:8px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;width:100%}
+.side-btn:hover{background:var(--card);color:var(--text)}.side-btn.active{background:var(--accent);color:#fff}
+.cnt{margin-left:auto;background:var(--tag-bg);border-radius:10px;padding:1px 7px;font-size:11px}
+main{flex:1;overflow:auto;padding:20px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:5px}
+.stat small{font-size:11px;color:var(--muted)}.stat b{font:700 24px 'Space Grotesk',sans-serif;line-height:1}
+.green{color:var(--green)}.yellow{color:var(--yellow)}.red{color:var(--red)}
+.controls{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.search{flex:1;min-width:160px}
+input[type=text],input[type=number],select,textarea{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 12px;color:var(--text);font:13px 'Inter',sans-serif;outline:none;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+.btn{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:9px 12px;color:var(--text);font-size:13px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.controls select{width:auto}
+.vt{display:flex;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:3px}
+.vt button{background:none;border:none;border-radius:6px;padding:5px 9px;cursor:pointer;color:var(--muted)}
+.vt button.active{background:var(--accent);color:#fff}
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:700px}
+thead{background:var(--surface)}
+th{text-align:left;padding:11px 14px;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+tbody tr{border-top:1px solid var(--border)}tbody tr:hover{background:rgba(165,112,51,.07)}
+td{padding:9px 14px;vertical-align:middle}.td-name{font-weight:500}
+.tag{display:inline-block;background:var(--tag-bg);border:1px solid var(--border);border-radius:6px;padding:2px 7px;font-size:11px;color:var(--muted)}
+.badge{display:inline-flex;font-size:11px;font-weight:600;padding:4px 9px;border-radius:20px;white-space:nowrap}
+.b-em{background:rgba(34,211,165,.12);color:var(--green)}.b-qa{background:rgba(245,158,11,.12);color:var(--yellow)}.b-es{background:rgba(244,63,94,.12);color:var(--red)}
+.sbar{display:flex;align-items:center;gap:8px}
+.track{flex:1;height:4px;background:var(--border);border-radius:4px;overflow:hidden;min-width:50px}.fill{height:100%;border-radius:4px}
+.snum{min-width:28px;text-align:right;font:700 14px 'Space Grotesk',sans-serif}
+.qs{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.qb{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:var(--tag-bg);color:var(--text);font-size:16px;font-weight:700;cursor:pointer}
+.qb:hover{background:var(--accent)}.qb.m:hover{background:var(--red)}
+.qi{max-width:54px;text-align:center;padding:4px 2px;font-weight:700}
+.qsave{font-size:11px;padding:4px 9px;border-radius:6px;border:1px solid var(--accent);background:none;color:var(--accent);cursor:pointer;font-weight:600}
+.hide{display:none}
+.acts{display:flex;gap:5px}
+.ib{background:var(--tag-bg);border:1px solid var(--border);border-radius:7px;padding:5px 7px;cursor:pointer;color:var(--muted)}
+.ib:hover{background:var(--accent);color:#fff}.ib.del:hover{background:var(--red)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.gc{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.gc:hover{border-color:var(--accent)}.gh{display:flex;justify-content:space-between;gap:8px;font-weight:600}
+.gx{display:flex;flex-wrap:wrap;gap:6px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:18px;width:520px;max-width:96vw;padding:26px;max-height:90vh;overflow-y:auto}
+.mt{font:700 18px 'Space Grotesk',sans-serif;margin-bottom:18px;display:flex;justify-content:space-between}
+.mt button{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.f{display:flex;flex-direction:column;gap:5px}.f.full{grid-column:1/-1}
+label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.ma{display:flex;gap:10px;margin-top:18px;justify-content:flex-end}
+hr{grid-column:1/-1;border:none;border-top:1px solid var(--border)}
+.ci{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.ci div{flex:1}.ci small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.addc{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px}
+.note{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5}
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}
+#toasts{position:fixed;bottom:20px;right:20px;z-index:300;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:10px;padding:11px 15px;font-size:13px;max-width:320px}
+.toast.warn{border-left-color:var(--yellow)}.toast.error{border-left-color:var(--red)}
+#sideOv{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:499}
+@media(max-width:900px){#sideOv.show{display:block}}
+</style>
+</head>
+<body>
+<header>
+  <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+  <div class="logo">◆ <span>CDR</span> Produtos</div>
+  <div class="sep"></div>
+  <div class="hact">
+    <button class="pill" onclick="openCols()">⚙ Colunas</button>
+    <div class="pill" title="Atualização em tempo real"><div class="dot busy" id="syncDot"></div><span id="syncLabel">Conectando…</span></div>
+  </div>
+</header>
+<div id="sideOv" onclick="closeSidebar()"></div>
+<div class="app">
+  <aside id="sidebar">
+    <div class="side-label">Status</div>
+    <button class="side-btn active" data-st="todos">📦 Todos <span class="cnt" id="c-todos">0</span></button>
+    <button class="side-btn" data-st="Em Estoque">✅ Em Estoque <span class="cnt" id="c-em">0</span></button>
+    <button class="side-btn" data-st="Quase Acabando">⚠️ Quase Acabando <span class="cnt" id="c-qa">0</span></button>
+    <button class="side-btn" data-st="Esgotado">🔴 Esgotado <span class="cnt" id="c-es">0</span></button>
+    <div id="dynSide"></div>
+  </aside>
+  <main>
+    <div class="stats">
+      <div class="stat"><small>Total de Produtos</small><b id="s-total">—</b></div>
+      <div class="stat"><small>Unidades em Estoque</small><b class="green" id="s-un">—</b></div>
+      <div class="stat"><small>Quase Acabando</small><b class="yellow" id="s-qa">—</b></div>
+      <div class="stat"><small>Esgotados</small><b class="red" id="s-es">—</b></div>
+    </div>
+    <div class="controls">
+      <input class="search" id="q" type="text" placeholder="Buscar produto…" oninput="render()">
+      <select id="sortSel" onchange="render()"><option value="nome">Nome</option><option value="estoque-desc">Estoque ↓</option><option value="estoque-asc">Estoque ↑</option><option value="status">Status</option></select>
+      <div class="vt"><button class="active" id="vt-table" onclick="setView('table')" title="Tabela">▤</button><button id="vt-grid" onclick="setView('grid')" title="Cards">▦</button></div>
+      <button class="btn" onclick="$('#file').click()">⬆ Importar CSV</button>
+      <button class="btn" onclick="exportCsv()">⬇ Exportar CSV</button>
+      <button class="btn btn-primary" onclick="openModal()">+ Novo</button>
+      <input type="file" id="file" accept=".csv,text/csv" class="hide">
+    </div>
+    <div id="tableView"><div class="table-wrap"><table><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table></div></div>
+    <div id="gridView" class="hide"><div class="grid" id="gbody"></div></div>
+  </main>
+</div>
+
+<div class="overlay" id="ov" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="mt"><span id="mTitle">Novo Produto</span><button onclick="closeModal()">✕</button></div>
+    <div class="fg" id="form"></div>
+    <div class="ma"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveProduct()">Salvar</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="colOv" onclick="if(event.target===this)closeCols()">
+  <div class="modal" style="width:560px">
+    <div class="mt"><span>⚙ Gerenciar Colunas</span><button onclick="closeCols()">✕</button></div>
+    <p class="note">Colunas nativas não podem ser removidas. As extras ficam salvas no Firestore (documento <b>config/colunas</b>) e valem para todos os produtos. Nenhuma configuração de SQL é necessária.</p>
+    <div id="colList"></div>
+    <div class="side-label" style="padding:0;margin:14px 0 8px">Nova coluna</div>
+    <div class="addc">
+      <div class="f"><label>Nome da coluna</label><input type="text" id="ncName" placeholder="Ex: Cor, Tamanho, Marca…"></div>
+      <div class="f"><label>Tipo</label><select id="ncType" onchange="$('#ncOptW').classList.toggle('hide',this.value!=='select')"><option value="text">Texto</option><option value="number">Número</option><option value="select">Lista de opções</option></select></div>
+      <button class="btn btn-primary" onclick="addColumn()">+ Adicionar</button>
+    </div>
+    <div class="f hide" id="ncOptW" style="margin-top:8px"><label>Opções (separadas por vírgula)</label><input type="text" id="ncOpts" placeholder="Pequeno, Médio, Grande"></div>
+    <div class="ma"><button class="btn btn-primary" onclick="closeCols()">Fechar</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="setupOv">
+  <div class="modal">
+    <div class="mt"><span>Conectar ao Firebase</span></div>
+    <p class="note">1) No console do Firebase, crie um projeto e ative o Firestore Database.<br>2) Em Configurações do projeto, registre um app Web e copie o <b>firebaseConfig</b>.<br>3) Cole abaixo. Fica salvo só neste navegador.</p>
+    <div class="f"><label>firebaseConfig</label><textarea id="cfg" rows="7" placeholder='{ apiKey: "...", authDomain: "...", projectId: "...", appId: "..." }'></textarea></div>
+    <div class="ma"><button class="btn btn-primary" onclick="saveCfg()">Conectar</button></div>
+  </div>
+</div>
+<div id="toasts"></div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getFirestore,collection,doc,onSnapshot,addDoc,setDoc,updateDoc,deleteDoc,writeBatch,deleteField} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const slug=s=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");
+const num=v=>{v=String(v??"").replace(/[R$\s]/g,"");if(v.includes(","))v=v.replace(/\./g,"").replace(",",".");const n=parseFloat(v);return Number.isNaN(n)?null:n};
+const autoStatus=q=>q<=0?"Esgotado":q<=5?"Quase Acabando":"Em Estoque";
+const NATIVE=[{key:"nome",label:"Nome"},{key:"tipo",label:"Tipo"},{key:"coluna",label:"Coluna"},{key:"estoque",label:"Estoque"}];
+const BADGE={"Em Estoque":["b-em","● Em Estoque"],"Quase Acabando":["b-qa","● Quase Acabando"],"Esgotado":["b-es","● Esgotado"]};
+let db,products=[],extra=[],pending={},activeStatus="todos",view="table",editingId=null;
+const FILT={};
+window.$=$;
+
+function toast(m,t="success"){const e=document.createElement("div");e.className="toast "+t;e.textContent=m;$("#toasts").appendChild(e);setTimeout(()=>e.remove(),3500)}
+function sync(s,l){$("#syncDot").className="dot "+s;$("#syncLabel").textContent=l}
+const hhmm=()=>new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+
+/* ---------- Firebase ---------- */
+function parseCfg(t){try{return JSON.parse(t)}catch{}const o={};for(const m of t.matchAll(/(\w+)\s*:\s*["']([^"']+)["']/g))o[m[1]]=m[2];return o}
+window.saveCfg=()=>{const c=parseCfg($("#cfg").value);if(!c.apiKey||!c.projectId)return toast("Cole o firebaseConfig completo.","error");localStorage.setItem("fbcfg",JSON.stringify(c));start()};
+function start(){
+  const raw=localStorage.getItem("fbcfg");
+  $("#setupOv").classList.toggle("open",!raw);
+  if(!raw)return;
+  try{
+    db=getFirestore(initializeApp(JSON.parse(raw)));
+    onSnapshot(collection(db,"produtos"),s=>{
+      products=s.docs.map(d=>{const x=d.data();return{...x,id:d.id,estoque:Number(x.estoque)||0,status:x.status||autoStatus(Number(x.estoque)||0)}});
+      sync("ok","Sincronizado "+hhmm());render();
+    },e=>{sync("err",e.code);toast("Erro no Firestore: "+e.code+". Confira as regras do banco.","error")});
+    onSnapshot(doc(db,"config","colunas"),s=>{extra=(s.data()||{}).cols||[];render();if($("#colOv").classList.contains("open"))renderCols()});
+  }catch(e){toast("Configuração inválida: "+e.message,"error")}
+}
+
+/* ---------- Colunas extras ---------- */
+const saveCols=()=>setDoc(doc(db,"config","colunas"),{cols:extra});
+window.openCols=()=>{renderCols();$("#colOv").classList.add("open")};
+window.closeCols=()=>$("#colOv").classList.remove("open");
+function renderCols(){
+  const T={text:"Texto",number:"Número",select:"Lista de opções"};
+  $("#colList").innerHTML=NATIVE.map(c=>`<div class="ci"><div>${c.label} <span class="tag">nativa</span></div></div>`).join("")+
+    (extra.length?extra.map(c=>`<div class="ci"><div>${esc(c.label)}<small>${T[c.type]}${c.options?.length?" • "+esc(c.options.join(", ")):""}</small></div><button class="ib del" onclick="deleteColumn('${c.key}')" title="Remover">🗑</button></div>`).join(""):'<p class="note">Nenhuma coluna extra criada ainda.</p>');
+}
+window.addColumn=async()=>{
+  const label=$("#ncName").value.trim(),type=$("#ncType").value;
+  if(!label)return toast("Informe o nome da coluna","error");
+  const key="extra_"+slug(label);
+  if(key==="extra_")return toast("Nome de coluna inválido","error");
+  if(extra.some(c=>c.key===key))return toast("Já existe uma coluna com esse nome","warn");
+  const options=type==="select"?$("#ncOpts").value.split(",").map(s=>s.trim()).filter(Boolean):null;
+  if(type==="select"&&!options.length)return toast("Informe as opções da lista","error");
+  extra=[...extra,{key,label,type,options}];
+  try{await saveCols();$("#ncName").value=$("#ncOpts").value="";toast(`Coluna "${label}" adicionada!`)}catch(e){toast("Erro: "+e.code,"error")}
+};
+window.deleteColumn=async key=>{
+  if(!confirm("Remover esta coluna? Os dados dela serão apagados de todos os produtos."))return;
+  extra=extra.filter(c=>c.key!==key);delete FILT[key];
+  try{
+    await saveCols();
+    const rows=products.filter(p=>key in p);
+    for(let i=0;i<rows.length;i+=400){const b=writeBatch(db);rows.slice(i,i+400).forEach(p=>b.update(doc(db,"produtos",p.id),{[key]:deleteField()}));await b.commit()}
+    toast("Coluna removida","warn");
+  }catch(e){toast("Erro: "+e.code,"error")}
+};
+
+/* ---------- Estoque rápido ---------- */
+window.adjustStock=(id,d)=>{const p=products.find(x=>x.id===id);if(p)commitStock(id,Math.max(0,p.estoque+d))};
+async function commitStock(id,q){
+  const p=products.find(x=>x.id===id);if(!p)return;const old=p.estoque;delete pending[id];
+  try{await updateDoc(doc(db,"produtos",id),{estoque:q,status:autoStatus(q)});toast(`${p.nome}: ${old} → ${q}`)}catch(e){toast("Erro: "+e.code,"error")}
+}
+window.onStockInput=(id,v)=>{pending[id]=Math.max(0,parseInt(v)||0);$("#qs-save-"+id)?.classList.remove("hide")};
+window.saveStockInput=id=>{if(pending[id]!==undefined)commitStock(id,pending[id])};
+
+/* ---------- CRUD ---------- */
+function buildForm(p){
+  let h=`<div class="f full"><label>Nome</label><input type="text" id="f-nome" value="${esc(p?.nome)}"></div>
+  <div class="f"><label>Tipo</label><input type="text" id="f-tipo" value="${p&&p.tipo!=="—"?esc(p.tipo):""}"></div>
+  <div class="f"><label>Coluna</label><input type="text" id="f-coluna" value="${p&&p.coluna!=="—"?esc(p.coluna):""}"></div>
+  <div class="f"><label>Estoque</label><input type="number" id="f-estoque" min="0" value="${p?p.estoque:""}"></div>
+  <div class="f"><label>Status</label><select id="f-status">${Object.keys(BADGE).map(s=>`<option${p?.status===s?" selected":""}>${s}</option>`).join("")}</select></div>`;
+  if(extra.length)h+="<hr>"+extra.map(c=>{
+    const v=p?.[c.key]??"";let i;
+    if(c.type==="select")i=`<select id="x-${c.key}"><option value="">— selecione —</option>${(c.options||[]).map(o=>`<option${String(v)===o?" selected":""}>${esc(o)}</option>`).join("")}</select>`;
+    else i=`<input type="${c.type==="number"?"number":"text"}" id="x-${c.key}" value="${esc(v)}">`;
+    return`<div class="f"><label>${esc(c.label)}</label>${i}</div>`}).join("");
+  $("#form").innerHTML=h;
+}
+window.openModal=id=>{editingId=id||null;$("#mTitle").textContent=id?"Editar Produto":"Novo Produto";buildForm(id?products.find(x=>x.id===id):null);$("#ov").classList.add("open")};
+window.closeModal=()=>{$("#ov").classList.remove("open");editingId=null};
+window.saveProduct=async()=>{
+  const nome=$("#f-nome").value.trim();if(!nome)return toast("Informe o nome","error");
+  const pl={nome,tipo:$("#f-tipo").value.trim()||"—",coluna:$("#f-coluna").value.trim()||"—",estoque:parseInt($("#f-estoque").value)||0,status:$("#f-status").value};
+  extra.forEach(c=>{const el=$("#x-"+c.key);if(el)pl[c.key]=c.type==="number"?num(el.value):(el.value||null)});
+  try{
+    if(editingId)await updateDoc(doc(db,"produtos",editingId),pl);else await addDoc(collection(db,"produtos"),pl);
+    toast(editingId?"Produto atualizado":"Produto adicionado");closeModal();
+  }catch(e){toast("Erro: "+e.code,"error")}
+};
+window.deleteProduct=async id=>{
+  const p=products.find(x=>x.id===id);if(!confirm(`Excluir "${p?.nome}"?`))return;
+  try{await deleteDoc(doc(db,"produtos",id));toast("Produto removido","warn")}catch(e){toast("Erro: "+e.code,"error")}
+};
+
+/* ---------- CSV ---------- */
+window.exportCsv=()=>{
+  const cols=[...NATIVE,{key:"status",label:"Status"},...extra];
+  const rows=[cols.map(c=>c.label),...products.map(p=>cols.map(c=>p[c.key]??""))];
+  const csv="\ufeff"+rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(";")).join("\r\n");
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  a.download=`cdr-produtos-${new Date().toISOString().slice(0,10)}.csv`;a.click();
+};
+function parseCsv(t){
+  t=t.replace(/^\ufeff/,"");const h=t.split("\n")[0],d=(h.match(/;/g)||[]).length>=(h.match(/,/g)||[]).length?";":",";
+  const rows=[];let r=[],c="",q=false;
+  for(let i=0;i<t.length;i++){const ch=t[i];
+    if(q){if(ch==='"'){if(t[i+1]==='"'){c+='"';i++}else q=false}else c+=ch}
+    else if(ch==='"')q=true;else if(ch===d){r.push(c);c=""}
+    else if(ch==="\n"){r.push(c.replace(/\r$/,""));rows.push(r);r=[];c=""}else c+=ch}
+  if(c||r.length){r.push(c.replace(/\r$/,""));rows.push(r)}
+  return rows.filter(r=>r.some(x=>x.trim()));
+}
+async function importCsv(file){
+  const rows=parseCsv(await file.text());
+  const head=rows.shift().map(h=>h.trim());
+  const nat={nome:"nome",produto:"nome",tipo:"tipo",coluna:"coluna",estoque:"estoque",quantidade:"estoque",qtd:"estoque",status:"status"};
+  let created=0;
+  const map=head.map(h=>{
+    const s=slug(h);if(nat[s])return{key:nat[s]};
+    let c=extra.find(x=>x.key==="extra_"+s||slug(x.label)===s);
+    if(!c&&s){c={key:"extra_"+s,label:h,type:"text",options:null};extra=[...extra,c];created++}
+    return c?{key:c.key,type:c.type}:null;
+  });
+  if(!map.some(m=>m?.key==="nome"))return toast("O CSV precisa de uma coluna Nome.","error");
+  if(created)await saveCols();
+  const idx={};products.forEach(p=>idx[[p.nome,p.tipo,p.coluna].map(x=>String(x||"—").toLowerCase().trim()).join("|")]=p.id);
+  const ops=[];
+  rows.forEach(r=>{
+    const o={};map.forEach((m,i)=>{if(!m)return;const v=(r[i]??"").trim();o[m.key]=m.type==="number"?num(v):m.key==="estoque"?Math.max(0,Math.round(num(v)||0)):v||null});
+    if(!o.nome)return;o.tipo=o.tipo||"—";o.coluna=o.coluna||"—";
+    if("estoque" in o||!("status" in o))o.estoque=o.estoque||0;
+    if(!BADGE[o.status])o.status=autoStatus(o.estoque||0);
+    ops.push(o);
+  });
+  let n=0;
+  for(let i=0;i<ops.length;i+=400){
+    const b=writeBatch(db);
+    ops.slice(i,i+400).forEach(o=>{const k=[o.nome,o.tipo,o.coluna].map(x=>x.toLowerCase().trim()).join("|");
+      idx[k]?b.set(doc(db,"produtos",idx[k]),o,{merge:true}):b.set(doc(collection(db,"produtos")),o);n++});
+    await b.commit();
+  }
+  toast(`${n} produtos importados${created?` e ${created} coluna(s) nova(s) criada(s)`:""}.`);
+}
+$("#file").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(f)try{await importCsv(f)}catch(x){toast("Falha na importação: "+(x.code||x.message),"error")}};
+
+/* ---------- Filtro, ordenação, render ---------- */
+function filtered(){
+  const q=$("#q").value.toLowerCase();
+  return products.filter(p=>{
+    if(activeStatus!=="todos"&&p.status!==activeStatus)return false;
+    for(const k in FILT)if(FILT[k].size&&!FILT[k].has(String(p[k]||"")))return false;
+    return !q||[p.nome,p.tipo,p.coluna,...extra.map(c=>p[c.key])].join(" ").toLowerCase().includes(q);
+  });
+}
+function sorted(a){
+  const v=$("#sortSel").value;
+  return [...a].sort(v==="estoque-desc"?(x,y)=>y.estoque-x.estoque:v==="estoque-asc"?(x,y)=>x.estoque-y.estoque:v==="status"?(x,y)=>x.status.localeCompare(y.status):(x,y)=>(x.nome||"").localeCompare(y.nome||""));
+}
+const color=s=>s==="Em Estoque"?"#22d3a5":s==="Quase Acabando"?"#f59e0b":"#f43f5e";
+const badge=s=>{const[c,t]=BADGE[s]||BADGE.Esgotado;return`<span class="badge ${c}">${t}</span>`};
+const pct=q=>Math.round(q/Math.max(...products.map(p=>p.estoque),1)*100);
+function qs(p){
+  const has=pending[p.id]!==undefined,cur=has?pending[p.id]:p.estoque;
+  return`<div class="qs"><button class="qb m" onclick="adjustStock('${p.id}',-1)">−</button>
+  <input class="qi" type="number" min="0" value="${cur}" oninput="onStockInput('${p.id}',this.value)" onkeydown="if(event.key==='Enter'){saveStockInput('${p.id}');this.blur()}">
+  <button class="qb" onclick="adjustStock('${p.id}',1)">+</button>
+  <button class="qsave ${has?"":"hide"}" id="qs-save-${p.id}" onclick="saveStockInput('${p.id}')">Salvar</button></div>`;
+}
+const val=(p,c)=>p[c.key]!==undefined&&p[c.key]!==null&&p[c.key]!==""?esc(p[c.key]):"—";
+
+window.render=()=>{
+  const n=s=>products.filter(p=>p.status===s).length;
+  $("#s-total").textContent=$("#c-todos").textContent=products.length;
+  $("#s-un").textContent=products.reduce((a,p)=>a+p.estoque,0);
+  $("#s-qa").textContent=$("#c-qa").textContent=n("Quase Acabando");
+  $("#s-es").textContent=$("#c-es").textContent=n("Esgotado");
+  $("#c-em").textContent=n("Em Estoque");
+  buildSide();
+  const data=sorted(filtered());
+  view==="table"?renderTable(data):renderGrid(data);
+};
+function renderTable(data){
+  $("#thead").innerHTML=[...NATIVE,...extra].map(c=>`<th>${esc(c.label)}</th>`).join("")+"<th>Ajuste Rápido</th><th>Status</th><th>Ações</th>";
+  $("#tbody").innerHTML=data.length?data.map(p=>`<tr><td class="td-name">${esc(p.nome)}</td><td><span class="tag">${esc(p.tipo||"—")}</span></td><td><span class="tag">${esc(p.coluna||"—")}</span></td>
+    <td><div class="sbar"><div class="track"><div class="fill" style="width:${pct(p.estoque)}%;background:${color(p.status)}"></div></div><span class="snum" style="color:${color(p.status)}">${p.estoque}</span></div></td>
+    ${extra.map(c=>`<td><span class="tag">${val(p,c)}</span></td>`).join("")}
+    <td>${qs(p)}</td><td>${badge(p.status)}</td>
+    <td><div class="acts"><button class="ib" onclick="openModal('${p.id}')" title="Editar">✏️</button><button class="ib del" onclick="deleteProduct('${p.id}')" title="Excluir">🗑</button></div></td></tr>`).join("")
+    :`<tr><td colspan="${extra.length+7}"><div class="empty">📭<br>${products.length?"Nenhum produto encontrado":"Nenhum produto ainda. Use + Novo ou Importar CSV."}</div></td></tr>`;
+}
+function renderGrid(data){
+  $("#gbody").innerHTML=data.length?data.map(p=>`<div class="gc"><div class="gh"><span>${esc(p.nome)}</span><div class="acts"><button class="ib" onclick="openModal('${p.id}')">✏️</button><button class="ib del" onclick="deleteProduct('${p.id}')">🗑</button></div></div>
+    <div class="gx"><span class="tag">${esc(p.tipo||"—")}</span><span class="tag">${esc(p.coluna||"—")}</span></div>${badge(p.status)}
+    <div class="gx">${extra.filter(c=>p[c.key]!=null&&p[c.key]!=="").map(c=>`<span class="tag"><b>${esc(c.label)}:</b> ${esc(p[c.key])}</span>`).join("")}</div>
+    <div class="track"><div class="fill" style="width:${pct(p.estoque)}%;background:${color(p.status)}"></div></div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><small style="color:var(--muted)">Estoque</small><b style="font:700 22px 'Space Grotesk';color:${color(p.status)}">${p.estoque}</b></div>${qs(p)}</div>`).join("")
+    :'<div class="empty">📭<br>Nenhum produto encontrado</div>';
+}
+function buildSide(){
+  const cols=[NATIVE[1],NATIVE[2],...extra.filter(c=>c.type!=="number")];let h="";
+  cols.forEach(c=>{
+    const vals=[...new Set(products.map(p=>String(p[c.key]||"")).filter(v=>v&&v!=="—"))].sort();
+    if(!vals.length)return;FILT[c.key]??=new Set();
+    h+=`<div class="side-label">${esc(c.label)}</div>`+vals.map(v=>`<button class="side-btn ${FILT[c.key].has(v)?"active":""}" data-k="${c.key}" data-v="${esc(v)}">${esc(v)}<span class="cnt">${products.filter(p=>String(p[c.key]||"")===v).length}</span></button>`).join("");
+  });
+  $("#dynSide").innerHTML=h;
+}
+$("#sidebar").onclick=e=>{
+  const b=e.target.closest(".side-btn");if(!b)return;
+  if(b.dataset.st){activeStatus=b.dataset.st;Object.values(FILT).forEach(s=>s.clear());
+    document.querySelectorAll("#sidebar .side-btn").forEach(x=>x.classList.remove("active"));b.classList.add("active")}
+  else{const s=FILT[b.dataset.k];s.has(b.dataset.v)?s.delete(b.dataset.v):s.add(b.dataset.v);activeStatus="todos";
+    document.querySelector("#sidebar [data-st]").classList.add("active");document.querySelectorAll("#sidebar [data-st]").forEach(x=>x.classList.toggle("active",x.dataset.st==="todos"))}
+  render();
+};
+window.setView=v=>{view=v;$("#tableView").classList.toggle("hide",v!=="table");$("#gridView").classList.toggle("hide",v!=="grid");$("#vt-table").classList.toggle("active",v==="table");$("#vt-grid").classList.toggle("active",v==="grid");render()};
+window.toggleSidebar=()=>{const a=$("#sidebar");if(innerWidth<=900){a.classList.toggle("open");$("#sideOv").classList.toggle("show")}else a.classList.toggle("closed")};
+window.closeSidebar=()=>{$("#sidebar").classList.remove("open");$("#sideOv").classList.remove("show")};
+start();render();
+</script>
+</body>
+</html>
